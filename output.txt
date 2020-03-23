@@ -1,9 +1,2 @@
-input1.txt
-Test file
-
-
-,
-input2.txt
-The second
-test file
-number two
+ 
+maz

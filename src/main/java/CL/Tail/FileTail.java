@@ -2,6 +2,7 @@ package CL.Tail;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.Argument;
 import java.io.*;
+import java.util.Scanner;
 
 public class FileTail {
     private boolean needChars = false;
@@ -31,6 +32,7 @@ public class FileTail {
 
             while ((currLine = reader.readLine()) != null)
                 sb.append(currLine).append('\n');
+
         }
         catch (IOException e) {
             System.err.println(e.getMessage());
@@ -76,7 +78,7 @@ public class FileTail {
     }
 
     private void assembleText() throws FileNotFoundException {
-        if (arguments.length == 1) getTextFromConsole();
+        if (arguments.length == 1) text.append(getTextFromConsole());
         else if (arguments.length == 2) {
             text.append(getTextFromFile(arguments[1]));
         }
@@ -90,8 +92,27 @@ public class FileTail {
         }
     }
 
-    private void getTextFromConsole() {
+    private String getTextFromConsole() {
+        StringBuilder sb = new StringBuilder();
+        String consoleText = "";
+        try (BufferedReader br = new BufferedReader (new InputStreamReader(System.in));
+             BufferedWriter bw = new BufferedWriter (new FileWriter("consoleInput.txt")))
+        {
+            String currLine;
+            while(!(currLine = br.readLine()).equals("ESC"))
+                sb.append(currLine).append('\r').append('\n');
 
+            int length = sb.length();
+            sb.deleteCharAt(length - 1).deleteCharAt(length - 2);
+            bw.write(sb.toString());
+
+        }
+        catch(IOException ex) {
+            System.out.println(ex.getMessage());
+        }
+        consoleText = getTextFromFile("consoleInput.txt");
+        new File("consoleInput.txt").deleteOnExit();
+        return consoleText;
     }
 
     private void writeToConsole() {
@@ -108,8 +129,8 @@ public class FileTail {
     }
 
     private void writeText() {
-        if (outputFileName.equals("")) writeToFile();
-        else writeToConsole();
+        if (outputFileName.equals("")) writeToConsole();
+        else writeToFile();
     }
 
     public void launch() throws IOException {
