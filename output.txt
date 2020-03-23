@@ -1,3 +1,9 @@
 input1.txt
-e
+Test file
+
+
+,
 input2.txt
+The second
+test file
+number two

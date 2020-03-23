@@ -1,79 +1,60 @@
 package CL.Tail;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.Argument;
-import org.apache.commons.io.input.ReversedLinesFileReader;
-
-
 import java.io.*;
-import java.util.Scanner;
 
 public class FileTail {
     private boolean needChars = false;
     private StringBuilder text = new StringBuilder();
 
-    @Option(name = "-n")
-    private int numStrings = -1;
+    @Option(name = "-n", forbids = {"-c"})
+    private int takeLines = -1;
 
-    @Option(name = "-c")
-    private int numChars = -1;
+    @Option(name = "-c", forbids = {"-n"})
+    private int takeChars = -1;
 
     @Option(name = "-o")
-    private String outputFileName = "o";
+    private String outputFileName = "";
 
     @Argument
     private String[] arguments;
 
-    public void doMain(String[] args) {
-//        CmdLineParser parser = new CmdLineParser(this);
-//        //for (String arg : args) System.out.println(arg);
-//
-//        try {
-//            parser.parseArgument(args);
-//
-//        } catch (CmdLineException e) {
-//            System.err.println(e.getMessage());
-//            System.err.println("java Main [options...] arguments...");
-//            parser.printUsage(System.err);
-//            System.err.println();
-//
-//            return;
-//        }
-//
-//        System.out.println();
-//
-//        System.out.println("-n was " + takeStrings);
-//        System.out.println("tail is " + isTail);
-    }
+    private String getTextFromFile(String input) { return (needChars) ? getSymbols(input) : getStrings(input); }
 
-    private String getText (String input) {
-        return (needChars) ? getSymbols(input) : getStrings(input);
-    }
-
-    private String getStrings (String input) {
-        return "";
-    }
-
-    private String getSymbols (String input) {
+    private String getStrings(String input) {
         StringBuilder sb = new StringBuilder();
-        long length = new File(input).length() - 1;
+        String currLine;
+        int linesInFile = countLines(input);
+        try (BufferedReader reader = new BufferedReader(new FileReader(input))) {
+            for (int i = 0; i < linesInFile - takeLines; i++)
+                reader.readLine();
 
+            while ((currLine = reader.readLine()) != null)
+                sb.append(currLine).append('\n');
+        }
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+        return sb.deleteCharAt(sb.length() - 1).toString(); // удаляем лишний \n в конце
+    }
+
+    private String getSymbols(String input) {
+        StringBuilder sb = new StringBuilder();
+        long length = new File(input).length();
         int c;
-        int lineBreakCount = 0;
+
         try (BufferedReader reader = new BufferedReader(new FileReader(input))) {
 
-            for (long i = 0; i < length - numChars; i++)
-                if ((c = (char)reader.read()) == '\n') lineBreakCount++;
+            int linesInFile = countLines(input);
+            length -= linesInFile - 1;     // считаем \r\n за один символ
 
-            while ((c = reader.read()) != -1) {
-                sb.append((char) c);
-                if (c == '\n') lineBreakCount++;
+            for (int i = 0; i < length - takeChars; i++) {
+                c = reader.read();
+                if (c == 13) i--;   // 10 = '\n', 13 = '\r'
             }
-            if (lineBreakCount > 0)
-                sb.delete(0, lineBreakCount);
+
+            while ((c = reader.read()) != -1)
+                sb.append((char)c);
         }
         catch (IOException e) {
             System.err.println(e.getMessage());
@@ -81,43 +62,63 @@ public class FileTail {
         return sb.toString();
     }
 
-    public void launch() throws IOException {
-        if (!arguments[0].equals("tail")) throw new IllegalArgumentException("Not a tail!");
-        if (numChars != -1 && numStrings != -1) throw new IllegalArgumentException("Chars or strings, not both!");
-
-        if (numChars == -1 && numStrings == -1) {
-            numStrings = 10;
-            // вызвать функцию работы со строками
-        }
-
-
-        if (numChars != -1) needChars = true;
-        if (arguments.length > 2) {
-            for (int i = 1; i < arguments.length; i++) {
-                text.append(arguments[i]).append('\n');
-                text.append(getText(arguments[i])).append('\n');
+    private int countLines(String input) {
+        int lineCounter = 0;
+        try (LineNumberReader lnr = new LineNumberReader(new FileReader(input))) {
+            while (lnr.readLine() != null) {
+                lineCounter++;
             }
-            text.deleteCharAt(text.length() - 1); // excess last \n
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return lineCounter;
+    }
+
+    private void assembleText() throws FileNotFoundException {
+        if (arguments.length == 1) getTextFromConsole();
+        else if (arguments.length == 2) {
+            text.append(getTextFromFile(arguments[1]));
         }
         else {
-                text.append(getText(arguments[1]));
+            for (int i = 1; i < arguments.length; i++) { // arguments[0] = tail --> инпуты с индекса 1
+                if (!new File(arguments[i]).exists()) throw new FileNotFoundException();
+                text.append(arguments[i]).append('\n');
+                text.append(getTextFromFile(arguments[i])).append('\n');
+            }
+            text.deleteCharAt(text.length() - 1); // лишний последний \n
         }
+    }
 
+    private void getTextFromConsole() {
 
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(outputFileName)))
-        {
+    }
+
+    private void writeToConsole() {
+        System.out.println(text);
+    }
+
+    private void writeToFile() {
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(outputFileName))) {
             writer.write(text.toString());
         }
-        catch(IOException e){
+        catch(IOException e) {
             System.out.println(e.getMessage());
         }
+    }
 
-//        for (int i = 0; i < arguments.length; i++)
-//            System.out.println(arguments[i]);
-        //File f = new File(arguments[indexOfInputs]);
-        //System.out.println(f.length());
-//        System.out.println("out is " + out);
-//        System.out.println("n is " + numStrings);
-//        System.out.println("c is " + numChars);
+    private void writeText() {
+        if (outputFileName.equals("")) writeToFile();
+        else writeToConsole();
+    }
+
+    public void launch() throws IOException {
+        if (!arguments[0].equals("tail")) throw new IllegalArgumentException("Not a tail!");
+
+        if (takeChars == -1 && takeLines == -1) takeLines = 10;
+        else if (takeChars != -1) needChars = true;
+
+        assembleText();
+        writeText();
     }
 }
