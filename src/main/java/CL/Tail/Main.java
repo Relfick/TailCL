@@ -1,10 +1,8 @@
 package CL.Tail;
-
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.CmdLineException;
 
 import java.io.*;
-
 
 public class Main {
 

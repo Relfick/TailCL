@@ -2,7 +2,7 @@ package CL.Tail;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.Argument;
 import java.io.*;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
 
 public class FileTail {
     private boolean needChars = false;
@@ -42,13 +42,13 @@ public class FileTail {
 
     private String getSymbols(String input) {
         StringBuilder sb = new StringBuilder();
-        long length = new File(input).length();
-        int c;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(input))) {
-
-            int linesInFile = countLines(input);
-            length -= linesInFile - 1;     // считаем \r\n за один символ
+        try (BufferedReader reader = new BufferedReader(new FileReader(input));
+             InputStreamReader lk = new InputStreamReader(new FileInputStream(input), StandardCharsets.UTF_8)) {
+            long length = 0;
+            int c;
+            while ((c = lk.read()) != -1)
+                if (c != 13) length++;
 
             for (int i = 0; i < length - takeChars; i++) {
                 c = reader.read();
@@ -78,15 +78,15 @@ public class FileTail {
     }
 
     private void assembleText() throws FileNotFoundException {
-        if (arguments.length == 1) text.append(getTextFromConsole());
-        else if (arguments.length == 2) {
-            text.append(getTextFromFile(arguments[1]));
+        if (arguments.length == 0) text.append(getTextFromConsole());
+        else if (arguments.length == 1) {
+            text.append(getTextFromFile(arguments[0]));
         }
         else {
-            for (int i = 1; i < arguments.length; i++) { // arguments[0] = tail --> инпуты с индекса 1
-                if (!new File(arguments[i]).exists()) throw new FileNotFoundException();
-                text.append(arguments[i]).append('\n');
-                text.append(getTextFromFile(arguments[i])).append('\n');
+            for (String argument : arguments) {
+                if (!new File(argument).exists()) throw new FileNotFoundException();
+                text.append(argument).append('\n');
+                text.append(getTextFromFile(argument)).append('\n');
             }
             text.deleteCharAt(text.length() - 1); // лишний последний \n
         }
@@ -94,7 +94,7 @@ public class FileTail {
 
     private String getTextFromConsole() {
         StringBuilder sb = new StringBuilder();
-        String consoleText = "";
+        String consoleText;
         try (BufferedReader br = new BufferedReader (new InputStreamReader(System.in));
              BufferedWriter bw = new BufferedWriter (new FileWriter("consoleInput.txt")))
         {
@@ -134,8 +134,6 @@ public class FileTail {
     }
 
     public void launch() throws IOException {
-        if (!arguments[0].equals("tail")) throw new IllegalArgumentException("Not a tail!");
-
         if (takeChars == -1 && takeLines == -1) takeLines = 10;
         else if (takeChars != -1) needChars = true;
 
