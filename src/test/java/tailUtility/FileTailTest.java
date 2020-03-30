@@ -1,4 +1,4 @@
-package CL.Tail;
+package tailUtility;
 
 import org.junit.jupiter.api.Test;
 

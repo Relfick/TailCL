@@ -1,4 +1,4 @@
-package CL.Tail;
+package tailUtility;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.Argument;
 import java.io.*;
@@ -20,7 +20,7 @@ public class FileTail {
     @Argument
     private String[] arguments;
 
-    private String getTextFromFile(String input) { return (needChars) ? getSymbols(input) : getStrings(input); }
+    private String getTextFromFile(String input) { return needChars ? getSymbols(input) : getStrings(input); }
 
     private String getStrings(String input) {
         StringBuilder sb = new StringBuilder();

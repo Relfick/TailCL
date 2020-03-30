@@ -1,4 +1,4 @@
-package CL.Tail;
+package tailUtility;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.CmdLineException;
 
